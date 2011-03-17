@@ -263,25 +263,30 @@ module EventMachine
       end
 
       def call_command(argv, &blk)
-        argv = argv.dup
 
-        argv[0] = argv[0].to_s.downcase
-        argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
-        raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
+        if not @send_buffers and not @connected
+          blk.call nil if block_given?
+        else
+          argv = argv.dup
 
-        command = ""
-        command << "*#{argv.size}\r\n"
-        argv.each do |a|
-          a = a.to_s
-          command << "$#{get_size(a)}\r\n"
-          command << a
-          command << "\r\n"
-        end
+          argv[0] = argv[0].to_s.downcase
+          argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
+          raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
 
-        @logger.debug { "*** sending: #{command}" } if @logger
-        maybe_lock do
-          @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
-          send_data command
+          command = ""
+          command << "*#{argv.size}\r\n"
+          argv.each do |a|
+            a = a.to_s
+            command << "$#{get_size(a)}\r\n"
+            command << a
+            command << "\r\n"
+          end
+
+          @logger.debug { "*** sending: #{command}" } if @logger
+          maybe_lock do
+            @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
+            send_data command
+          end
         end
       end
 
@@ -328,6 +333,7 @@ module EventMachine
         @db             = (options[:db] || 0).to_i
         @password       = options[:password]
         @logger         = options[:logger]
+        @send_buffers   = !(options[:no_send_buffers] || false)
         @error_callback = lambda do |code|
           err = RedisError.new
           err.code = code
