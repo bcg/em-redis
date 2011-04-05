@@ -460,9 +460,6 @@ module EventMachine
           @connected = false
           @reconnecting = true
           @deferred_status = nil
-        else
-          # TODO: get rid of this exception
-          raise 'Unable to connect to redis server'
         end
       end
 
