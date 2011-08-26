@@ -451,7 +451,7 @@ module EventMachine
 
       def unbind
         @logger.debug { "Disconnected" }  if @logger
-        if @connected || @reconnecting
+        if !@reconnecting
           EM.add_timer(1) do
             @logger.debug { "Reconnecting to #{@host}:#{@port}" }  if @logger
             reconnect @host, @port
